@@ -1,0 +1,69 @@
+# docker-compose.yml - تشغيل كامل بأمر واحد
+
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: clothing-erp-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: clothing-erp
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - erp-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clothing-erp-backend
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: development
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/clothing-erp?authSource=admin
+      JWT_SECRET: your-secret-key-123-change-this
+      JWT_REFRESH_SECRET: refresh-secret-456-change-this
+      VAT_RATE: 14
+      CURRENCY: EGP
+    depends_on:
+      - mongodb
+    networks:
+      - erp-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clothing-erp-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    depends_on:
+      - backend
+    networks:
+      - erp-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  mongodb_data:
+
+networks:
+  erp-network:
+    driver: bridge
+
+# استخدام:
+# docker-compose up
+# ثم افتح: http://localhost:3000
